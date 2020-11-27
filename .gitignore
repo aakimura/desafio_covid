@@ -1,5 +1,6 @@
 # Files
 *.code-workspace
+*.DS_Store
 
 # Folders
 data/
