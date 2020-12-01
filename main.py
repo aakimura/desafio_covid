@@ -1,8 +1,9 @@
 import os
+import re
 import fnmatch
 import requests
 import pandas as pd
-
+import datetime
 
 # Definir paths
 root_path = os.getcwd()
@@ -49,7 +50,7 @@ def get_covid(url):
     return df
 
 
-def import_gt(pattern):
+def import_gt(pattern, lag=0):
     """Importa archivos CSV de resultados de búsquedas de Google Trends,
        resetea el índice y transforma los datos a sus tipos apropiados"""
     df = pd.read_csv(find(pattern, gt_path), header=1, index_col='Week')
@@ -61,6 +62,9 @@ def import_gt(pattern):
 
     # Convertir columnas a respectivos data types
     df.index = pd.to_datetime(df.index)
+
+    # Desplazar curva x número de días determinados por la variable offset
+    df.index = df.index + datetime.timedelta(lag)
 
     try:
         df[keyword] = df[keyword].str.replace('<', '').astype(int)
@@ -77,24 +81,64 @@ def import_gt(pattern):
     return df
 
 
+def correlate_gt(path, target_df, lag=0):
+    # Obtener DataFrame de casos confirmados
+    df1 = target_df
+
+    # Normalizar casos diarios
+    df1['cases_norm'] = round(
+        df1['cases_daily'] / max(df1['cases_daily']) * 100, 0)
+
+    df1 = df1[['cases_daily', 'cases_norm']]
+
+    # Procesar Google Trends
+    files = [i for i in os.listdir(path) if i.endswith('.csv')]
+
+    # Obtener keywords usados en Googlt Trends
+    keywords = [re.match(r'(.+?)(_\d+\.csv)', i).group(1) for i in files]
+    keywords = list(set(keywords))
+
+    # Crear data frame
+
+    for keyword in keywords:
+        # Checar que keyword sea único
+        check = [i for i in keywords if keyword in i]
+
+        if len(check) > 1:
+            keyword = keyword + '_2'
+
+        # Obtener data frame del keyword
+        try:
+            df2 = import_gt(keyword + '*', lag=lag)
+        except ValueError:
+            print(keyword)
+            break
+
+        df1 = pd.concat([df1, df2], axis=1)
+
+    # Limpiar data frame
+    df1 = df1.drop('google_date', axis=1).dropna()
+
+    # Correlacionar variables
+    df1 = df1.corr()
+
+    # Limpiar resultados
+    df1 = df1.drop(['cases_daily', 'cases_norm']).sort_values(
+        by='cases_daily', ascending=False)
+    df1 = df1['cases_daily']
+
+    return df1
+
+
 # Ejecutar codigo
 def main():
     # Obtener DataFrame de casos confirmados
-    covid_df = get_covid(covid_url).groupby('wk').sum()['cases_daily']
-    gt_sym = import_gt('sintomas_covid*')
-    gt_sl = import_gt('perdida_olfato*')
-    gt_tl = import_gt('perdida_gusto*')
-    df = pd.concat([covid_df, gt_sym, gt_sl, gt_tl], axis=1)
+    covid_df = get_covid(covid_url)
 
-    # Crear columna con número normalizado de casos confirmados
-    df['cases_norm'] = round(
-        (df['cases_daily'] / max(df['cases_daily']) * 100), 0)
+    corr_df = correlate_gt(gt_path, target_df=covid_df.groupby('wk').sum(),
+                           lag=0)
 
-    # Eliminar clutter
-    df = df.drop('google_date', axis=1)
-    df = df.dropna()
-
-    return df
+    return covid_df, corr_df
 
 
 if __name__ == '__main__':
