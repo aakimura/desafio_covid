@@ -16,19 +16,21 @@ En resúmen, el incremento de los contagios modifica los hábitos de las persona
 
 El punto es poder anticipar políticas públicas que ataquen directamente dos cosas: la propagación del COVID-19 y empezar a recolectar evidencia de desempleo. Si detenemos la propagación, la economía puede mantenerse activa.
 
-En este proyecto me enfoqué en la propagación del COVID-19 porque el desempleo es una métrica que difícilmente puede encontrarse desagregada por semana. Pero en esencia, el proceso es el mismo.
+En este proyecto me enfoqué en la propagación del COVID-19 porque el desempleo debería aparecer el primer o segundo trimestre del siguiente año, además es una métrica que difícilmente puede encontrarse desagregada por semana. Pero en esencia, el proceso es el mismo.
 
 ## Google Trends y la propagación del COVID-19
 
 Google Trends no solamente es una herramienta para la optimización de motores de búsqueda. Su esencia permite también saber en qué están interesadas las personas durante un periodo de tiempo. Resulta sumamente interesante lo preciso que puede llegar a ser la búsqueda de palabras clave con los eventos epidemiológicos, tal y como se puede ver en la siguiente gráfica.
 
-![Casos confirmados y búsqueda en Google](https://raw.githubusercontent.com/aakimura/desafio_covid/arima/img/cases_perdida_olfato.png)
+![Casos confirmados y búsqueda en Google](https://raw.githubusercontent.com/aakimura/desafio_covid/img/cases_perdida_olfato.png)
 
 ## Datos
 
 Se utilizó la [API de Data México](https://datamexico.org/api/data.jsonrecords?Nation=mex&cube=gobmx_covid_stats_nation&drilldowns=Time,Nation&measures=Accum+Cases,Daily+Cases,AVG+7+Days+Accum+Cases,AVG+7+Days+Daily+Cases,Rate+Daily+Cases,Rate+Accum+Cases,Days+from+50+Cases&parents=true&sparse=false&s=Casospositivosdiarios&q=Fecha&r=withoutProcessOption) para obtener el número de casos diarios de COVID-19. Por otro lado, se utilizan data sets de tendencias de búsqueda en [Google Trends](https://trends.google.com/trends/?geo=MX). Se probaron diferentes frases que representan los síntomas característicos de COVID-19 (e.g. "perdida olfato", "perdida gusto", "fiebre", "sintomas covid"), insumos para evitar contagios (e.g. "cubrebocas", "n95") o actividades (e.g. "hoteles abiertos", "cines abiertos", "restaurantes abiertos".
 
 ## ¿Cuáles son las frases correlacionadas con los contagios?
+
+Se seleccionaron diversas frases que representen tanto los mismos síntomas de la enfermedad, así como actividades que podrían propiciar el contagio como por ejemplo "restaurantes" y "cines" ya que se llevan a cabo en lugares cerrados.
 
 En lo que va del 2020 la frase que presentó una mayor correlación fue "perdida olfato" seguida de "perdida gusto". Por otro lado, los insumos médicos tienen una pobre correlación con los contagios.
 
@@ -58,7 +60,57 @@ Frases relacionadas con vacaciones tienen una correlación débil, sin embargo, 
 
 Algunas frases mantienen su trayectoria, aunque claramente otras evolucionan de acuerdo a los casos de COVID.
 
-![Evolucion de casos y frases](https://raw.githubusercontent.com/aakimura/desafio_covid/arima/img/all_corr.png)
+![Evolucion de casos y frases](https://raw.githubusercontent.com/aakimura/desafio_covid/img/all_corr.png)
+
+### Síntomas
+
+Retomando la correlación entre "perdida_olfato" y los casos confirmados resultan interesantes tres puntos:
+
+1) Picos bruscos en las primeras semanas hasta el máximo histórico de la semana 29. Probablemente debido a la atención generada al conocerse los síntomas característicos del COVID-19.
+
+2) El pico de la semana 29 es predecido 2 semanas antes por las búsquedas en Google y con la misma magnitud que los casos.
+
+3) Sin embargo, el segundo pico de la semana 43 no pudo ser predecido a tiempo. De hecho los picos de ambas series se da la misma semana pero con magnitudes distintas.
+
+Este último punto nos podría indicar el conocimiento adquirido del público respecto a este síntoma o fatiga respecto al tema. Por lo tanto, podríamos intuir que las **búsquedas pierden poder con el paso del tiempo**. He ahí la necesidad de combinar este método con otros modelos.
+
+Al presentar altas correlaciones la intuición sería correr regresiones sobre estos indicadores para obtener el número de casos confirmados. Sin embargo, se ha documentado en Lazer et al.<sup>4</sup> que depender únicamente de éstos generaría un sesgo que no precisamente corresponde a la dinámica de la enfermedad. Los autores sugieren combinar indicadores de Google con formas tradicionales de estimación. En el caso de eventos epidemiológicos, ARIMA es uno de ellos.
+
+### Insumos médicos
+
+Otro caso interesante son las búsquedas relacionadas a insumos médicos (e.g. "cubrebocas" y "N95"). Como se puede ver, alrededor de la semana 15 alcanzaron sus puntos máximos para después descender consistentemente. Esto nos hablaría del pánico que generó la enfermedad en sus primeras fases y la necesidad auto-generada de a población de abastecerse de dichos insumos de protección.
+
+### Vacaciones y actividades
+
+Durante 2020 las búsquedas de hoteles tocaron su máximo la segunda semana del año, justo la fecha más baja en un año habitual. Esto nos habla de la caída estrepitosa que tuvo el sector este año.
+
+Por otro lado, de las actividades en lugares cerrados, las búsquedas de "restaurantes abiertos" parecen imitar la curva de contagios hasta la semana 40 cuando pierden su eficacia.
+
+## ¿Qué podemos hacer con esta información?
+
+Definitivamente el índice de Google debería aportar valor a las metodolgías tradicionales de estimación.
+
+## ARIMA y COVID
+
+ARIMA o *Autocorreation Integrated Moving Average* es un modelo estadístico que permite generar predicciones a partir de series temporales. Su supuesto principal es que la serie de tiempo debe ser estacionaria, es decir, no debe tener tendencia ni estacionalidad.
+
+La estimación de ARIMA es iterativa y en su mayoría puede evaluarse visualmente. Por ejemplo, para estimar las transformaciones iniciales, es necesario identificar algúna transforación no lineal que deba realizarse como preparativo. Revisando la serie que nos ocupa podemos comprobar la que es una serie no estacionaria con un incremento explosivo los primeros meses.
+
+![Casos confirmados por semana](https://raw.githubusercontent.com/aakimura/desafio_covid/img/cases_weekly.png)
+
+La serie de casos fue transformada mediante logaritmo natural. Al inspeccionarse las funciones ACF y PACF (Función de Autocorrelación y Función de Autocorrelación Parcial, respectivamente) se encontró que el mejor modelo para predecir los movimientos del COVID sería ARIMA(1, 1, 0). Dicha configuración corresponde a un modelo autorregresivo de primer orden. Este modelo alcanzó un RMSE de 0.09852.
+
+![Resultados de la autocorrelación](https://raw.githubusercontent.com/aakimura/desafio_covid/img/ln_fcst_arima100_train80.png)
+
+## ARIMA y Google Trends
+
+La estimación de ARIMA con variable exógena, sin embargo, no corrió la misma suerte que el modelo anterior. Tanto los p-values como los t-stats del lag como del Google index resultaron no estadísticamente significativos.
+
+## ¿Qué implica esto?
+
+Es necesario continuar con el trabajo de prueba para encontrar el modelo idóneo paa combinar el modelo autorregresivo con la variable explicatoria Google Index.
+
+Esto nos permitiría poder anticipar movimientos de la pandemia que impacten directamente en la economía, como los picos de pánico de los primeros meses o el confinamiento voluntario en ambos picos.
 
 ## Limitaciones
 
@@ -73,6 +125,8 @@ Google ya ha intendado crear herramientas basadas en sus búsquedas para rastrea
 2. Baker, S.R., Bloom, N., Davis, S.J., Kost, K.J., Sammon, M.C. and Viratyosin, T., 2020. The unprecedented stock market impact of COVID-19 (No. w26945). National Bureau of Economic Research.
 
 3. Kimura, A., 2020. Los efectos del gran confinamiento en la salud. [Link](https://medium.com/@akimura/efectos-del-gran-confinamiento-en-la-salud-9753526c458)
+
+4. Lazer, D., Kennedy, R., King, G. and Vespignani, A., 2014. The parable of Google Flu: traps in big data analysis. Science, 343(6176), pp.1203-1205.
 
 D’Amuri, F. and Marcucci, J., 2017. The predictive power of Google searches in forecasting US unemployment. International Journal of Forecasting, 33(4), pp.801-816.
 
