@@ -22,7 +22,7 @@ En este proyecto me enfoqué en la propagación del COVID-19 porque el desempleo
 
 Google Trends no solamente es una herramienta para la optimización de motores de búsqueda. Su esencia permite también saber en qué están interesadas las personas durante un periodo de tiempo. Resulta sumamente interesante lo preciso que puede llegar a ser la búsqueda de palabras clave con los eventos epidemiológicos, tal y como se puede ver en la siguiente gráfica.
 
-![Casos confirmados y búsqueda en Google](https://raw.githubusercontent.com/aakimura/desafio_covid/img/cases_perdida_olfato.png)
+![Casos confirmados y búsqueda en Google](https://raw.githubusercontent.com/aakimura/desafio_covid/main/img/cases_perdida_olfato.png)
 
 ## Datos
 
@@ -60,7 +60,7 @@ Frases relacionadas con vacaciones tienen una correlación débil, sin embargo, 
 
 Algunas frases mantienen su trayectoria, aunque claramente otras evolucionan de acuerdo a los casos de COVID.
 
-![Evolucion de casos y frases](https://raw.githubusercontent.com/aakimura/desafio_covid/img/all_corr.png)
+![Evolucion de casos y frases](https://raw.githubusercontent.com/aakimura/desafio_covid/main/img/all_corr.png)
 
 ### Síntomas
 
@@ -96,11 +96,11 @@ ARIMA o *Autocorreation Integrated Moving Average* es un modelo estadístico que
 
 La estimación de ARIMA es iterativa y en su mayoría puede evaluarse visualmente. Por ejemplo, para estimar las transformaciones iniciales, es necesario identificar algúna transforación no lineal que deba realizarse como preparativo. Revisando la serie que nos ocupa podemos comprobar la que es una serie no estacionaria con un incremento explosivo los primeros meses.
 
-![Casos confirmados por semana](https://raw.githubusercontent.com/aakimura/desafio_covid/img/cases_weekly.png)
+![Casos confirmados por semana](https://raw.githubusercontent.com/aakimura/desafio_covid/main/img/cases_weekly.png)
 
 La serie de casos fue transformada mediante logaritmo natural. Al inspeccionarse las funciones ACF y PACF (Función de Autocorrelación y Función de Autocorrelación Parcial, respectivamente) se encontró que el mejor modelo para predecir los movimientos del COVID sería ARIMA(1, 1, 0). Dicha configuración corresponde a un modelo autorregresivo de primer orden. Este modelo alcanzó un RMSE de 0.09852.
 
-![Resultados de la autocorrelación](https://raw.githubusercontent.com/aakimura/desafio_covid/img/ln_fcst_arima100_train80.png)
+![Resultados de la autocorrelación](https://raw.githubusercontent.com/aakimura/desafio_covid/main/img/ln_fcst_arima100_train80.png)
 
 ## ARIMA y Google Trends
 
@@ -128,8 +128,8 @@ Google ya ha intendado crear herramientas basadas en sus búsquedas para rastrea
 
 4. Lazer, D., Kennedy, R., King, G. and Vespignani, A., 2014. The parable of Google Flu: traps in big data analysis. Science, 343(6176), pp.1203-1205.
 
-D’Amuri, F. and Marcucci, J., 2017. The predictive power of Google searches in forecasting US unemployment. International Journal of Forecasting, 33(4), pp.801-816.
+5. D’Amuri, F. and Marcucci, J., 2017. The predictive power of Google searches in forecasting US unemployment. International Journal of Forecasting, 33(4), pp.801-816.
 
-Lazer, D., Kennedy, R., King, G. and Vespignani, A., 2014. The parable of Google Flu: traps in big data analysis. Science, 343(6176), pp.1203-1205.
+6. Lazer, D., Kennedy, R., King, G. and Vespignani, A., 2014. The parable of Google Flu: traps in big data analysis. Science, 343(6176), pp.1203-1205.
 
-Zhang X, Zhang T, Young AA, Li X (2014) Applications and Comparisons of Four Time Series Models in Epidemiological Surveillance Data. PLoS ONE 9(2): e88075.
+7. Zhang X, Zhang T, Young AA, Li X (2014) Applications and Comparisons of Four Time Series Models in Epidemiological Surveillance Data. PLoS ONE 9(2): e88075.
