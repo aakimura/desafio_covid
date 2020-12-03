@@ -26,11 +26,11 @@ Google Trends no solamente es una herramienta para la optimización de motores d
 
 ## Datos
 
-Se utilizan data sets de tendencias de búsqueda en [Google Trends](https://trends.google.com/trends/?geo=MX). Se probaron diferentes frases que representan los síntomas característicos de COVID-19 (e.g. "perdida olfato", "perdida gusto", "fiebre", "sintomas covid"), o insumos para evitar contagios (e.g. "cubrebocas", "n95"). Por otro lado, se utilizó la [API de Data México](https://datamexico.org/api/data.jsonrecords?Nation=mex&cube=gobmx_covid_stats_nation&drilldowns=Time,Nation&measures=Accum+Cases,Daily+Cases,AVG+7+Days+Accum+Cases,AVG+7+Days+Daily+Cases,Rate+Daily+Cases,Rate+Accum+Cases,Days+from+50+Cases&parents=true&sparse=false&s=Casospositivosdiarios&q=Fecha&r=withoutProcessOption) para obtener el número de casos diarios de COVID-19.
+Se utilizó la [API de Data México](https://datamexico.org/api/data.jsonrecords?Nation=mex&cube=gobmx_covid_stats_nation&drilldowns=Time,Nation&measures=Accum+Cases,Daily+Cases,AVG+7+Days+Accum+Cases,AVG+7+Days+Daily+Cases,Rate+Daily+Cases,Rate+Accum+Cases,Days+from+50+Cases&parents=true&sparse=false&s=Casospositivosdiarios&q=Fecha&r=withoutProcessOption) para obtener el número de casos diarios de COVID-19. Por otro lado, se utilizan data sets de tendencias de búsqueda en [Google Trends](https://trends.google.com/trends/?geo=MX). Se probaron diferentes frases que representan los síntomas característicos de COVID-19 (e.g. "perdida olfato", "perdida gusto", "fiebre", "sintomas covid"), insumos para evitar contagios (e.g. "cubrebocas", "n95") o actividades (e.g. "hoteles abiertos", "cines abiertos", "restaurantes abiertos".
 
-## Metodología
+## ¿Cuáles son las frases correlacionadas con los contagios?
 
-Como se muestra en la siguiente tabla, la frase que presentó una mayor correlación fue "perdida olfato" seguida de "perdida gusto". Por otro lado, los insumos médicos tienen una pobre correlación con los contagios.
+En lo que va del 2020 la frase que presentó una mayor correlación fue "perdida olfato" seguida de "perdida gusto". Por otro lado, los insumos médicos tienen una pobre correlación con los contagios.
 
 Frases relacionadas con vacaciones tienen una correlación débil, sin embargo, actividades en lugares cerrados como "restaurantes" o "cines" tienen correlaciones significativas.
 
@@ -56,9 +56,15 @@ Frases relacionadas con vacaciones tienen una correlación débil, sin embargo, 
 |           |cines abiertos       |     0.692476
 |           |cines covid          |     0.603122
 
+Algunas frases mantienen su trayectoria, aunque claramente otras evolucionan de acuerdo a los casos de COVID.
+
+![Evolucion de casos y frases](https://raw.githubusercontent.com/aakimura/desafio_covid/arima/img/all_corr.png)
+
 ## Limitaciones
 
 El uso de índices basado en búsquedas en Google aportan gran valor al complementar modelos tradicionales de predicción. Sin embargo, la pandemia de COVID-19 tiene elementos muy particulares que impiden recolectar datos anteriores a su aparición y por lo tanto, el *dataset* será limitado. Por ejemplo, COVID-19 es la primera pandemia a la cual se le ha encontrado una fuerte correlación con la pérdida del olfato y el gusto, lo que apunta a ser un síntoma previamente no reconocido en otras enfermedades.
+
+Google ya ha intendado crear herramientas basadas en sus búsquedas para rastrear eventos epidemiológicos. Sin embargo, su iniciativa fracasó principalmente por los cambios realizados en su motor de búsqueda. Mantener constante el mismo modelo de predicción resulta peligroso por lo que necesita un constante mantenimiento.
 
 ## Referencias
 
