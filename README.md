@@ -22,6 +22,8 @@ En este proyecto me enfoqué en la propagación del COVID-19 porque el desempleo
 
 Google Trends no solamente es una herramienta para la optimización de motores de búsqueda. Su esencia permite también saber en qué están interesadas las personas durante un periodo de tiempo. Resulta sumamente interesante lo preciso que puede llegar a ser la búsqueda de palabras clave con los eventos epidemiológicos, tal y como se puede ver en la siguiente gráfica.
 
+![Casos confirmados y búsqueda en Google](https://raw.githubusercontent.com/aakimura/desafio_covid/arima/img/cases_perdida_olfato.png)
+
 ## Datos
 
 Se utilizan data sets de tendencias de búsqueda en [Google Trends](https://trends.google.com/trends/?geo=MX). Se probaron diferentes frases que representan los síntomas característicos de COVID-19 (e.g. "perdida olfato", "perdida gusto", "fiebre", "sintomas covid"), o insumos para evitar contagios (e.g. "cubrebocas", "n95"). Por otro lado, se utilizó la [API de Data México](https://datamexico.org/api/data.jsonrecords?Nation=mex&cube=gobmx_covid_stats_nation&drilldowns=Time,Nation&measures=Accum+Cases,Daily+Cases,AVG+7+Days+Accum+Cases,AVG+7+Days+Daily+Cases,Rate+Daily+Cases,Rate+Accum+Cases,Days+from+50+Cases&parents=true&sparse=false&s=Casospositivosdiarios&q=Fecha&r=withoutProcessOption) para obtener el número de casos diarios de COVID-19.
