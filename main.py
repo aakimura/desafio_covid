@@ -267,8 +267,9 @@ def arima_fcst(df, exog, p, d, q, train_pct=0):
               '\nMAE:\t' + str(mae))
 
         # Graficar resultados
-        plt.plot(test.to_list())
-        plt.plot(predictions, color='red')
+        plot1, = plt.plot(test.to_list(), label='Observaciones')
+        plot2, = plt.plot(predictions, color='red', label='Predicción')
+        plt.legend([plot1, plot2], ['Observaciones', 'Predicción'])
         plt.show()
 
     else:
