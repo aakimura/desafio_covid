@@ -144,6 +144,15 @@ def correlate_gt(path, target_df, lag=0):
     return df1, df2
 
 
+def plot_single(df, title, vline=0):
+    df.plot(title=title)
+    plt.xlabel('Semana')
+    plt.ylabel('Indice')
+    if vline > 0:
+        plt.axvline(vline, color='red')
+    plt.show()
+
+
 def plot_grid(corr_df):
     fig, axs = plt.subplots(5, 4, sharex=True, sharey=True)
     i = 0
