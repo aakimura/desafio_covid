@@ -14,10 +14,8 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.arima_model import ARIMA
 
 # Filtrar alertas
-warnings.filterwarnings('ignore', 'statsmodels.tsa.arima_model.ARMA',
-                        FutureWarning)
-warnings.filterwarnings('ignore', 'statsmodels.tsa.arima_model.ARIMA',
-                        FutureWarning)
+warnings.filterwarnings(action='ignore', module='statsmodels.tsa.arima_model',
+                        category=FutureWarning)
 
 # Definir paths
 root_path = os.getcwd()
@@ -31,6 +29,12 @@ covid_url = 'https://datamexico.org/api/data.jsonrecords?Nation=mex&cube=gobmx\
              Daily+Cases,Rate+Accum+Cases,Days+from+50+Cases&parents=true&\
              sparse=false&s=Casos positivos diarios&q=Fecha&r=\
              withoutProcessOption'.replace(' ', '')
+
+
+# Definir MAPE
+def mean_absolute_percentage_error(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / y_true))
 
 
 # Definir funciones
@@ -238,7 +242,7 @@ def arima_tests(df, exog, p, d, q):
     plt.show()
 
 
-def arima_fcst(df, exog, p, d, q, train_pct=0):
+def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff'):
     """Calcula el modelo ARIMA(p, d, q) y obtiene las funciones ACF y PACF de
     los residuales.
     train_pct indica el porcentaje de observaciones que se reservan para
@@ -246,39 +250,94 @@ def arima_fcst(df, exog, p, d, q, train_pct=0):
     dataset destinada a entrenar el modelo."""
     # Dividir dataset
     if train_pct <= 1:
-        size = int(len(df) * train_pct)
-        train, test = df[0:size], df[size:len(df)]
-        history = [x for x in train]
-        predictions = list()
-
-        # Acotar variables exógenas a las semanas del train set
+        # Modelado ARIMA y variables exógenas
         if exog is not None:
-            exog = exog.loc[(exog.index >= min(train.index)) &
-                            (exog.index <= max(train.index))]
+            model_type = 'ARIMAX'
+            # Semanas que se intersectan en ambas series
+            wks = exog.index.intersection(df.index)
+            # Semanas a proyectar con el modelo entrenado
+            # wksx = exog.index.difference(df.index)
+            # Variables exogenas acotadas
+            exog = exog.loc[wks]
+            # Variables endogenas acotadas
+            df = df.loc[wks]
 
-        # Predecir cada uno de los pasos utilizando una "historia" actualizada
-        # con las predicciones anteriores
-        for t in range(len(test)):
-            model = ARIMA(endog=history, exog=exog, order=(p, d, q))
-            model_fit = model.fit(disp=0)
-            output = model_fit.forecast()
-            yhat = output[0]
-            predictions.append(yhat)
-            obs = test.iloc[t]
-            history.append(obs)
+            size = int(len(df) * train_pct)
+            train, test = df[0:size], df[size:len(df)]
+            train_exog, test_exog = exog[0:size], exog[size:len(exog)]
+            history = [x for x in train]
+            history_exog = [x for x in train_exog]
+            predictions = list()
+
+            # Predecir cada uno de los pasos utilizando "historia" actualizada
+            # con las predicciones anteriores
+            for t in range(len(test)):
+                # Crear modelo
+                model = ARIMA(endog=history, exog=history_exog,
+                              order=(p, d, q))
+                model_fit = model.fit(disp=0)
+                # Proyectar con autorregresión y exog
+                target_exog = pd.DataFrame(train_exog).iloc[t]
+                output = model_fit.forecast(exog=target_exog)
+                yhat = output[0][0]
+                predictions.append(yhat)
+                # Agregar observaciones a variables endógenas
+                obs = test.iloc[t]
+                gt = test_exog.iloc[t]
+                history.append(obs)
+                history_exog.append(gt)
+
+        # Modelado solo ARIMA
+        else:
+            model_type = 'ARIMA'
+            size = int(len(df) * train_pct)
+            train, test = df[0:size], df[size:len(df)]
+            history = [x for x in train]
+            predictions = list()
+
+            # Predecir cada uno de los pasos utilizando"historia" actualizada
+            # con las predicciones anteriores
+            for t in range(len(test)):
+                # Crear modelo
+                model = ARIMA(endog=history, exog=None, order=(p, d, q))
+                model_fit = model.fit(disp=0)
+                output = model_fit.forecast()
+                yhat = output[0][0]
+                predictions.append(yhat)
+                # Agregar observaciones a variables endógenas
+                obs = test.iloc[t]
+                history.append(obs)
+
+        # Reversar la transformación
+        if trans == 'ln':
+            test = np.exp(test)
+            predictions = np.exp(predictions)
+            df = np.exp(df)
 
         # Mediciones de error
         rmse = sklearn.metrics.mean_squared_error(test, predictions,
                                                   squared=False)
         mae = sklearn.metrics.mean_absolute_error(test, predictions)
+        mape = mean_absolute_percentage_error(test, predictions)
 
-        print('Errores \n' + '-' * 20 + '\n' + 'RMSE:\t' + str(rmse) +
-              '\nMAE:\t' + str(mae))
+        # Imprimir reporte
+        print('\nModelo ' + model_type + '(' + str(p) + ', ' +
+              str(d) + ', ' + str(q) + ')\n' + '-' * 20)
+        print('Errores \n' + '-' * 20 +
+              '\nRMSE:\t' + str(rmse) +
+              '\nMAE:\t' + str(mae),
+              '\nMAPE:\t' + str(mape) + '\n' + '-' * 20 +
+              '\nÚltimas observaciones:\n')
+        chart = pd.DataFrame({'Observaciones': df,
+                              'Predicciones': pd.Series(predictions,
+                                                        index=test.index)})
+        chart['Error'] = (chart['Observaciones'] - chart['Predicciones']) /\
+            chart['Observaciones']
+        print(chart.tail(5))
 
         # Graficar resultados
-        plot1, = plt.plot(test.to_list(), label='Observaciones')
-        plot2, = plt.plot(predictions, color='red', label='Predicción')
-        plt.legend([plot1, plot2], ['Observaciones', 'Predicción'])
+        chart[['Observaciones', 'Predicciones']].plot()
+        plt.ylim(bottom=min(train))
         plt.show()
 
     else:
@@ -288,8 +347,10 @@ def arima_fcst(df, exog, p, d, q, train_pct=0):
 # Ejecutar codigo
 def main():
     # Obtener DataFrame de casos confirmados
-    covid_df = get_covid(covid_url)
-    wk_df = covid_df.groupby('wk').sum()
+    df = get_covid(covid_url)
+    this_week = datetime.date.today().isocalendar()[1]
+    df = df[~df['wk'].isin([this_week])]
+    wk_df = df.groupby('wk').sum()
 
     # Las siguientes transformaciones fueron iteradas manualmente utilizando
     # la función arima_tests() para encontrar la serie ideal.
@@ -308,16 +369,24 @@ def main():
     #     ADF coeff: -16.3568 (valor crítico 1% = -3.6155)
     #     p-value: 0.0000
 
+    # Obtener variables exógenas
+    keyword = 'perdida_olfato'
+    target_gt = import_gt(keyword.replace(' ', '_') + '*')
+
+    # a) Obtener intersección entre los dos conjuntos de semanas
+
+    # b) Construir serie exógena
+    exog = target_gt.loc[:, keyword]
+    # Incluir lag de una semana
+    exog.index = exog.index + 1
+
     # Modelar ARIMA
-    model = ARIMA(endog=arima_target,
-                  exog=None,
-                  order=(1, 1, 0))
+    arima_fcst(arima_target, exog=None, p=1, d=0, q=0, train_pct=0.8,
+               trans='ln')
     # El orden ARIMA(1, 0, 0) proviene de las gráficas ACF y PACF donde PACF
     # presenta picos en k=1 y una caída significativa y definitiva en k=2,
     # mientras que ACF muestra un pico en k=1 y un descenso gradual.
     # Por lo tanto la serie presenta un patrón AR(1) distintivo.
-
-    return covid_df, arima_target
 
 
 if __name__ == '__main__':
