@@ -12,6 +12,8 @@ import warnings
 
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.arima_model import ARIMA
+from sklearn.ensemble import RandomForestRegressor
+
 
 # Filtrar alertas
 warnings.filterwarnings(action='ignore', module='statsmodels.tsa.arima_model',
@@ -242,7 +244,7 @@ def arima_tests(df, exog, p, d, q):
     plt.show()
 
 
-def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff'):
+def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff', exog_lag=0):
     """Calcula el modelo ARIMA(p, d, q) y obtiene las funciones ACF y PACF de
     los residuales.
     train_pct indica el porcentaje de observaciones que se reservan para
@@ -252,6 +254,9 @@ def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff'):
     if train_pct <= 1:
         # Modelado ARIMA y variables exógenas
         if exog is not None:
+            # Incluir lag en variables exogenas
+            exog.index = exog.index + exog_lag
+
             model_type = 'ARIMAX'
             # Semanas que se intersectan en ambas series
             wks = exog.index.intersection(df.index)
@@ -323,7 +328,7 @@ def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff'):
         # Imprimir reporte
         print('\nModelo ' + model_type + '(' + str(p) + ', ' +
               str(d) + ', ' + str(q) + ')\n' + '-' * 20)
-        print('Errores \n' + '-' * 20 +
+        print('\nErrores \n' + '-' * 20 +
               '\nRMSE:\t' + str(rmse) +
               '\nMAE:\t' + str(mae),
               '\nMAPE:\t' + str(mape) + '\n' + '-' * 20 +
@@ -336,12 +341,64 @@ def arima_fcst(df, exog, p, d, q, train_pct=0, trans='diff'):
         print(chart.tail(5))
 
         # Graficar resultados
-        chart[['Observaciones', 'Predicciones']].plot()
+        chart[['Observaciones', 'Predicciones']].plot(title='ARIMA(X)')
         plt.ylim(bottom=min(train))
-        plt.show()
 
     else:
         print('El porcentaje de train set es mayor a 1.')
+
+
+def rfr_fcst(X, y, X_lag=0, train_pct=0.8):
+    """Random forest regression para proyectar el número semanal de casos respecto al índice de Google Trends."""
+    # Adicionar lag a la variable independiente
+    X.index = X.index + X_lag
+
+    # Encontrar intersección entre semanas
+    wks = X.index.intersection(y.index)
+    X = np.array(X.loc[wks])
+    y = np.array(y.loc[wks])
+
+    # Reformatear figuras
+    X = X.reshape(-1, 1)
+
+    # Partir dataset en train y test
+    size = int(len(y) * train_pct)
+    X_train, X_test = X[0:size], X[size:len(X)]
+    y_train, y_test = y[0:size], y[size:len(y)]
+
+    # Crear regresión lineal
+    regr = RandomForestRegressor(n_estimators=500)
+
+    # Entrenar modelo con los training sets
+    regr.fit(X_train, y_train)
+
+    # Crear predicciones con el test set
+    y_pred = regr.predict(X_test)
+
+    # Calcular errores
+    rmse = sklearn.metrics.mean_squared_error(y_test, y_pred, squared=False)
+    mae = sklearn.metrics.mean_absolute_error(y_test, y_pred)
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+
+    # Crear reportes
+    print('\nModelo Random Forest Regression\n' + '-' * 20)
+    print('\nCoeficiente de determinación\n', '-' * 20)
+    print('R^2: %.2f' % regr.score(X_test, y_test))
+    print('Errores \n' + '-' * 20 +
+          '\nRMSE:\t' + str(rmse) +
+          '\nMAE:\t' + str(mae),
+          '\nMAPE:\t' + str(mape) + '\n' + '-' * 20 +
+          '\nÚltimas observaciones:\n')
+
+    chart = pd.DataFrame({'Observaciones': y_test,
+                          'Predicciones': y_pred})
+    chart['Error'] = (chart['Observaciones'] - chart['Predicciones']) /\
+        chart['Observaciones']
+    print(chart.tail(5))
+
+    # Graficar resultados
+    chart[['Observaciones', 'Predicciones']].plot(
+        title='Random Forest Regression')
 
 
 # Ejecutar codigo
@@ -377,16 +434,20 @@ def main():
 
     # b) Construir serie exógena
     exog = target_gt.loc[:, keyword]
-    # Incluir lag de una semana
-    exog.index = exog.index + 1
 
     # Modelar ARIMA
     arima_fcst(arima_target, exog=None, p=1, d=0, q=0, train_pct=0.8,
-               trans='ln')
+               trans='ln', exog_lag=1)
     # El orden ARIMA(1, 0, 0) proviene de las gráficas ACF y PACF donde PACF
     # presenta picos en k=1 y una caída significativa y definitiva en k=2,
     # mientras que ACF muestra un pico en k=1 y un descenso gradual.
     # Por lo tanto la serie presenta un patrón AR(1) distintivo.
+
+    # Modelar Random Forest Regression
+    rfr_fcst(wk_df['cases_daily'], wk_df['cases_daily'], X_lag=1, train_pct=0.8)
+
+    # Mostrar graficas
+    plt.show()
 
 
 if __name__ == '__main__':
